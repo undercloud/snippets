@@ -50,35 +50,43 @@
 
 	if (false ==  function_exists('array_first')) {
 		function array_first(array $array) {
-			return array_shift(
-				array_slice(array_values($array), 0, 1)
-			);
+			$array = array_values($array);
+			
+			return reset($array);
 		}
 	}
 
 	if (false == function_exists('array_first_key')) {
 		function array_first_key(array $array) {
-			return array_shift(
-				array_slice(array_keys($array), 0, 1)
-			);
+			$array = array_keys($array);
+			
+			return reset($array);
 		}
 	}
 
 	if (false ==  function_exists('array_last')) {
 		function array_last(array $array) {
-			return array_pop(array_values($array), -1);
+			$array = array_values($array);
+			
+			return end($array);
 		}
 	}
 
 	if (false ==  function_exists('array_last_key')) {
 		function array_last_key(array $array) {
-			return array_pop(array_keys($array), -1);
+			$array = array_keys($array);
+			
+			return end($array);
 		}
 	}
 
 	if (false == function_exists('array_initial')) {
 		function array_initial(array $array, $n = 1) {
-			return array_slice($array, (-1 * $n));
+			if (0 == $n) {
+				return $array;
+			}
+		
+			return array_slice($array,0, (-1 * $n));
 		}
 	}
 
@@ -101,16 +109,28 @@
 				}
 			}
 			
-			return array($ok, $value);
+			return array($ok, $fail);
 		}
 	}
 
-		if (false == function_exists('array_index')) {
+	if (false == function_exists('array_index')) {
 		function array_index(array $array, $field) {
 			$indexed = array();
 			foreach ($array as $value) {
-				if (isset($value[$field])) {
-					$indexed[$value[$field]] = $value;
+				unset($key);
+			
+				if (is_array($value)) {
+					if (isset($value[$field])) {
+						$key = $value[$field];
+					}
+				} else if (is_object($value)) {
+					if (isset($value->{$field})) {
+						$key = $value->{$field};
+					}
+				}
+				
+				if (isset($key)) {
+					$indexed[$key] = $value;
 				}
 			}
 
@@ -122,12 +142,24 @@
 		function array_group(array $array, $field) {
 			$group = array();
 			foreach ($array as $value) {
-				if (isset($value[$field])) {
-					if (false == isset($group[$value[$field]])) {
-						$group[$value[$field]] = array();
-					}
+				unset($key);
 
-					$group[$value[$field]][] = $value;
+				if (is_array($value)) {
+					if (isset($value[$field])) {
+						$key = $value[$field];
+					}
+				} else if (is_object($value)) {
+					if (isset($value->{$field})) {
+						$key = $value->{$field};
+					}
+				}
+				
+				if (isset($key)) {
+					if (false == isset($group[$key])) {
+						$group[$key] = array();
+					}
+				
+					$group[$key][] = $value;
 				}
 			}
 
@@ -195,18 +227,32 @@
 			foreach ($array as $key => $value) {
 				if (is_array($predicate)) {
 					foreach ($predicate as $pkey => $pvalue) {
-						if (false == isset($value[$pkey])) {
-							continue;
-						}
+						if (is_scalar($value)) {
+							if (false == $comparator($value[$pkey], $pvalue, $strict)) {
+								continue;
+							}
+						} else if (is_array($value)) {
+							if (false == isset($value[$pkey])) {
+								continue 2;
+							}
 
-						if (false == $comparator($value, $pvalue, $strict)) {
-							continue;
+							if (false == $comparator($value[$pkey], $pvalue, $strict)) {
+								continue 2;
+							}
+						} else if(is_object($value)) {
+							if (false == isset($value->{$pkey})) {
+								continue 2;
+							}
+
+							if (false == $comparator($value->{$pkey}, $pvalue, $strict)) {
+								continue 2;
+							}
 						}
 					}
 
 					$find[$key] = $value;
 				} else {
-					if (false == $comparator($value, $predicate, $static)) {
+					if (true == $comparator($value, $predicate, $strict)) {
 						$find[$key] = $value;
 					}
 				}
@@ -216,6 +262,35 @@
 		}
 	}
 
+	if (false == function_exists('array_cast')) {
+		function array_cast(array $array, $cast) {
+			if (false == is_array($cast)) {
+				$cast = array($cast);
+			}
+			
+			$native = array('null', 'boolean', 'string', 'integer', 'float', 'numeric', 'array', 'object', 'resource', 'callable', 'scalar');
+			
+			$filter = array();
+			foreach ($array as $key => $value){
+				foreach ($cast as $c) {
+					if (in_array($c, $native)) {
+						if (false == call_user_func_array('is_' . $c, array($value))) {
+							continue 2;
+						}
+					} else {
+						if (false == ($value instanceof $c)) {
+							continue 2;
+						}
+					}
+				}
+				
+				$filter[$key] = $value;
+			}
+			
+			return $filter;
+ 		}
+	}
+	
 	if (false == function_exists('array_sort_by_array')) {
 		function array_sort_by_array(array $array, array $sorter){
 			$ordered = array();
