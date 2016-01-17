@@ -10,6 +10,11 @@
 			} 
 		}
 
+		public function has($key)
+		{
+			return (property_exists($this, $key) or method_exists($this, $key));
+		}
+
 		public function __call($method, $arguments)
 		{
 			if (isset($this->{$method}) and is_callable($this->{$method})) {

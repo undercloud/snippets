@@ -3,16 +3,13 @@
 	
 	error_reporting(-1);
 
-	require __DIR__ . '/array/array_zip.php';
+	require __DIR__ . '/object/stdObject.php';
 
-	$data = [
-		[1,2,3],
-		['a','b','c'],
-		[true,true,false]
-	];
+	$o = new stdObject(array(
+		'foo' => 'bar'
 
-	var_dump(array_zip([1,2,3],
-		['a','b','c'],
-		[true,true]));
+	));
+
+	var_dump($o->has('foo'));
 ?>
 </pre>
